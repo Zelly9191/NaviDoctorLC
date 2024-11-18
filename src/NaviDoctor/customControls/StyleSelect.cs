@@ -58,6 +58,11 @@ namespace NaviDoctor.customControls
                     nudVersion.Visible = false;
                     break;
                 case GameTitle.Title.MegaManBattleNetwork2:
+                    nudVersion.Maximum = 3;
+                    break;
+                case GameTitle.Title.MegaManBattleNetwork3White:
+                case GameTitle.Title.MegaManBattleNetwork3Blue:
+                    nudVersion.Maximum = 4;
                     break;
 
             }
@@ -72,6 +77,15 @@ namespace NaviDoctor.customControls
             }
             radEquipStyle.CheckedChanged += (s, e) => EquipStyleChecked?.Invoke(this, e);
             cbxAddStyle.CheckedChanged += (s, e) => AddStyleChecked?.Invoke(this, e);
+        }
+
+        public void ToggleAdd(bool toggle)
+        {
+            cbxAddStyle.Enabled = toggle;
+        }
+        public void ToggleEquip(bool toggle)
+        {
+            radEquipStyle.Enabled = toggle;
         }
     }
 }

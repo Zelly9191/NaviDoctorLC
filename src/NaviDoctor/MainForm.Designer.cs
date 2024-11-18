@@ -59,6 +59,8 @@ namespace NaviDoctor
             this.chipDataToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.libraryToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.programAdvanceMemoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.naviCustToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.customizeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tabsFolders = new System.Windows.Forms.TabControl();
@@ -99,8 +101,14 @@ namespace NaviDoctor
             this.panel_MegamanStats = new System.Windows.Forms.Panel();
             this.pnl_MegamanHealth = new System.Windows.Forms.Panel();
             this.pnl_MainFill = new System.Windows.Forms.Panel();
+            this.panelRegChip = new System.Windows.Forms.Panel();
+            this.cbxRegChip = new System.Windows.Forms.ComboBox();
+            this.btnSetRegChip = new System.Windows.Forms.Button();
+            this.label18 = new System.Windows.Forms.Label();
             this.pnl_PackQuantity = new System.Windows.Forms.Panel();
+            this.pbx_Loading = new System.Windows.Forms.PictureBox();
             this.pnl_MainFooter = new System.Windows.Forms.Panel();
+            this.lbl_Loading = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.attackStat)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.rapidStat)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.chargeStat)).BeginInit();
@@ -134,7 +142,9 @@ namespace NaviDoctor
             this.panel_MegamanStats.SuspendLayout();
             this.pnl_MegamanHealth.SuspendLayout();
             this.pnl_MainFill.SuspendLayout();
+            this.panelRegChip.SuspendLayout();
             this.pnl_PackQuantity.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pbx_Loading)).BeginInit();
             this.pnl_MainFooter.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -283,7 +293,7 @@ namespace NaviDoctor
             // 
             this.dgvPack.AllowUserToAddRows = false;
             this.dgvPack.AllowUserToDeleteRows = false;
-            this.dgvPack.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.dgvPack.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.AllCells;
             this.dgvPack.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
             dataGridViewCellStyle1.BackColor = System.Drawing.SystemColors.Window;
@@ -293,17 +303,17 @@ namespace NaviDoctor
             dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
             dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
             this.dgvPack.DefaultCellStyle = dataGridViewCellStyle1;
-            this.dgvPack.Location = new System.Drawing.Point(373, 55);
+            this.dgvPack.Location = new System.Drawing.Point(436, 51);
             this.dgvPack.Name = "dgvPack";
             this.dgvPack.RowHeadersWidth = 62;
             this.dgvPack.RowTemplate.Height = 28;
-            this.dgvPack.Size = new System.Drawing.Size(374, 406);
+            this.dgvPack.Size = new System.Drawing.Size(422, 406);
             this.dgvPack.TabIndex = 8;
             // 
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(369, 28);
+            this.label6.Location = new System.Drawing.Point(431, 19);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(80, 33);
             this.label6.TabIndex = 9;
@@ -311,7 +321,7 @@ namespace NaviDoctor
             // 
             // btnAddChip
             // 
-            this.btnAddChip.Location = new System.Drawing.Point(326, 255);
+            this.btnAddChip.Location = new System.Drawing.Point(385, 256);
             this.btnAddChip.Name = "btnAddChip";
             this.btnAddChip.Size = new System.Drawing.Size(27, 54);
             this.btnAddChip.TabIndex = 11;
@@ -321,7 +331,7 @@ namespace NaviDoctor
             // 
             // btnRemoveChip
             // 
-            this.btnRemoveChip.Location = new System.Drawing.Point(326, 173);
+            this.btnRemoveChip.Location = new System.Drawing.Point(385, 174);
             this.btnRemoveChip.Name = "btnRemoveChip";
             this.btnRemoveChip.Size = new System.Drawing.Size(27, 54);
             this.btnRemoveChip.TabIndex = 11;
@@ -386,10 +396,11 @@ namespace NaviDoctor
             this.menuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.fileToolStripMenuItem,
             this.chipDataToolStripMenuItem,
+            this.naviCustToolStripMenuItem,
             this.helpToolStripMenuItem});
             this.menuStrip.Location = new System.Drawing.Point(0, 0);
             this.menuStrip.Name = "menuStrip";
-            this.menuStrip.Size = new System.Drawing.Size(1015, 36);
+            this.menuStrip.Size = new System.Drawing.Size(1128, 33);
             this.menuStrip.TabIndex = 18;
             this.menuStrip.Text = "menuStrip1";
             // 
@@ -399,7 +410,7 @@ namespace NaviDoctor
             this.loadToolStripMenuItem,
             this.saveToolStripMenuItem});
             this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
-            this.fileToolStripMenuItem.Size = new System.Drawing.Size(54, 32);
+            this.fileToolStripMenuItem.Size = new System.Drawing.Size(54, 29);
             this.fileToolStripMenuItem.Text = "File";
             // 
             // loadToolStripMenuItem
@@ -422,7 +433,7 @@ namespace NaviDoctor
             this.libraryToolStripMenuItem,
             this.programAdvanceMemoToolStripMenuItem});
             this.chipDataToolStripMenuItem.Name = "chipDataToolStripMenuItem";
-            this.chipDataToolStripMenuItem.Size = new System.Drawing.Size(106, 32);
+            this.chipDataToolStripMenuItem.Size = new System.Drawing.Size(106, 29);
             this.chipDataToolStripMenuItem.Text = "Chip Data";
             // 
             // libraryToolStripMenuItem
@@ -439,12 +450,27 @@ namespace NaviDoctor
             this.programAdvanceMemoToolStripMenuItem.Text = "Program Advance Memo";
             this.programAdvanceMemoToolStripMenuItem.Click += new System.EventHandler(this.programAdvanceMemoToolStripMenuItem_Click);
             // 
+            // naviCustToolStripMenuItem
+            // 
+            this.naviCustToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.customizeToolStripMenuItem});
+            this.naviCustToolStripMenuItem.Name = "naviCustToolStripMenuItem";
+            this.naviCustToolStripMenuItem.Size = new System.Drawing.Size(98, 29);
+            this.naviCustToolStripMenuItem.Text = "NaviCust";
+            // 
+            // customizeToolStripMenuItem
+            // 
+            this.customizeToolStripMenuItem.Name = "customizeToolStripMenuItem";
+            this.customizeToolStripMenuItem.Size = new System.Drawing.Size(209, 34);
+            this.customizeToolStripMenuItem.Text = "Customize...";
+            this.customizeToolStripMenuItem.Click += new System.EventHandler(this.customizeToolStripMenuItem_Click);
+            // 
             // helpToolStripMenuItem
             // 
             this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.aboutToolStripMenuItem});
             this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
-            this.helpToolStripMenuItem.Size = new System.Drawing.Size(65, 32);
+            this.helpToolStripMenuItem.Size = new System.Drawing.Size(65, 29);
             this.helpToolStripMenuItem.Text = "Help";
             // 
             // aboutToolStripMenuItem
@@ -462,7 +488,7 @@ namespace NaviDoctor
             this.tabsFolders.Location = new System.Drawing.Point(6, 20);
             this.tabsFolders.Name = "tabsFolders";
             this.tabsFolders.SelectedIndex = 0;
-            this.tabsFolders.Size = new System.Drawing.Size(314, 444);
+            this.tabsFolders.Size = new System.Drawing.Size(362, 444);
             this.tabsFolders.TabIndex = 19;
             this.tabsFolders.SelectedIndexChanged += new System.EventHandler(this.tabsFolders_SelectedIndexChanged);
             // 
@@ -472,7 +498,7 @@ namespace NaviDoctor
             this.tabPage_Folder1.Location = new System.Drawing.Point(4, 42);
             this.tabPage_Folder1.Name = "tabPage_Folder1";
             this.tabPage_Folder1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage_Folder1.Size = new System.Drawing.Size(306, 398);
+            this.tabPage_Folder1.Size = new System.Drawing.Size(354, 398);
             this.tabPage_Folder1.TabIndex = 0;
             this.tabPage_Folder1.Text = "Folder1";
             this.tabPage_Folder1.UseVisualStyleBackColor = true;
@@ -481,7 +507,7 @@ namespace NaviDoctor
             // 
             this.dgvFolder1.AllowUserToAddRows = false;
             this.dgvFolder1.AllowUserToDeleteRows = false;
-            this.dgvFolder1.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.dgvFolder1.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.AllCells;
             this.dgvFolder1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
             dataGridViewCellStyle2.BackColor = System.Drawing.SystemColors.Window;
@@ -497,7 +523,7 @@ namespace NaviDoctor
             this.dgvFolder1.ReadOnly = true;
             this.dgvFolder1.RowHeadersWidth = 62;
             this.dgvFolder1.RowTemplate.Height = 28;
-            this.dgvFolder1.Size = new System.Drawing.Size(300, 392);
+            this.dgvFolder1.Size = new System.Drawing.Size(348, 392);
             this.dgvFolder1.TabIndex = 11;
             // 
             // tabPage_Folder2
@@ -506,7 +532,7 @@ namespace NaviDoctor
             this.tabPage_Folder2.Location = new System.Drawing.Point(4, 42);
             this.tabPage_Folder2.Name = "tabPage_Folder2";
             this.tabPage_Folder2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage_Folder2.Size = new System.Drawing.Size(306, 398);
+            this.tabPage_Folder2.Size = new System.Drawing.Size(354, 398);
             this.tabPage_Folder2.TabIndex = 1;
             this.tabPage_Folder2.Text = "Folder2";
             this.tabPage_Folder2.UseVisualStyleBackColor = true;
@@ -515,7 +541,7 @@ namespace NaviDoctor
             // 
             this.dgvFolder2.AllowUserToAddRows = false;
             this.dgvFolder2.AllowUserToDeleteRows = false;
-            this.dgvFolder2.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.dgvFolder2.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.AllCells;
             this.dgvFolder2.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
             dataGridViewCellStyle3.BackColor = System.Drawing.SystemColors.Window;
@@ -531,7 +557,7 @@ namespace NaviDoctor
             this.dgvFolder2.ReadOnly = true;
             this.dgvFolder2.RowHeadersWidth = 62;
             this.dgvFolder2.RowTemplate.Height = 28;
-            this.dgvFolder2.Size = new System.Drawing.Size(300, 392);
+            this.dgvFolder2.Size = new System.Drawing.Size(348, 392);
             this.dgvFolder2.TabIndex = 12;
             // 
             // tabPage_Folder3
@@ -540,7 +566,7 @@ namespace NaviDoctor
             this.tabPage_Folder3.Location = new System.Drawing.Point(4, 42);
             this.tabPage_Folder3.Name = "tabPage_Folder3";
             this.tabPage_Folder3.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage_Folder3.Size = new System.Drawing.Size(306, 398);
+            this.tabPage_Folder3.Size = new System.Drawing.Size(354, 398);
             this.tabPage_Folder3.TabIndex = 2;
             this.tabPage_Folder3.Text = "Folder3";
             this.tabPage_Folder3.UseVisualStyleBackColor = true;
@@ -549,7 +575,7 @@ namespace NaviDoctor
             // 
             this.dgvFolder3.AllowUserToAddRows = false;
             this.dgvFolder3.AllowUserToDeleteRows = false;
-            this.dgvFolder3.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.dgvFolder3.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.AllCells;
             this.dgvFolder3.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             dataGridViewCellStyle4.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
             dataGridViewCellStyle4.BackColor = System.Drawing.SystemColors.Window;
@@ -565,7 +591,7 @@ namespace NaviDoctor
             this.dgvFolder3.ReadOnly = true;
             this.dgvFolder3.RowHeadersWidth = 62;
             this.dgvFolder3.RowTemplate.Height = 28;
-            this.dgvFolder3.Size = new System.Drawing.Size(300, 392);
+            this.dgvFolder3.Size = new System.Drawing.Size(348, 392);
             this.dgvFolder3.TabIndex = 12;
             // 
             // lblFolderCount
@@ -581,7 +607,7 @@ namespace NaviDoctor
             // 
             this.nudPackQuantity.Anchor = System.Windows.Forms.AnchorStyles.Right;
             this.nudPackQuantity.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.nudPackQuantity.Location = new System.Drawing.Point(112, 10);
+            this.nudPackQuantity.Location = new System.Drawing.Point(112, 9);
             this.nudPackQuantity.Maximum = new decimal(new int[] {
             99,
             0,
@@ -607,10 +633,10 @@ namespace NaviDoctor
             this.lblGameVersion.Dock = System.Windows.Forms.DockStyle.Right;
             this.lblGameVersion.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, ((System.Drawing.FontStyle)((System.Drawing.FontStyle.Bold | System.Drawing.FontStyle.Italic))), System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblGameVersion.ForeColor = System.Drawing.SystemColors.ControlDarkDark;
-            this.lblGameVersion.Location = new System.Drawing.Point(642, 0);
+            this.lblGameVersion.Location = new System.Drawing.Point(755, 0);
             this.lblGameVersion.Name = "lblGameVersion";
-            this.lblGameVersion.Padding = new System.Windows.Forms.Padding(0, 10, 0, 0);
-            this.lblGameVersion.Size = new System.Drawing.Size(373, 43);
+            this.lblGameVersion.Padding = new System.Windows.Forms.Padding(0, 25, 0, 0);
+            this.lblGameVersion.Size = new System.Drawing.Size(373, 58);
             this.lblGameVersion.TabIndex = 22;
             this.lblGameVersion.Text = "No Game Version Loaded";
             // 
@@ -623,9 +649,9 @@ namespace NaviDoctor
             this.pnl_MainLeft.Controls.Add(this.panel_MegamanStats);
             this.pnl_MainLeft.Controls.Add(this.pnl_MegamanHealth);
             this.pnl_MainLeft.Dock = System.Windows.Forms.DockStyle.Left;
-            this.pnl_MainLeft.Location = new System.Drawing.Point(0, 36);
+            this.pnl_MainLeft.Location = new System.Drawing.Point(0, 33);
             this.pnl_MainLeft.Name = "pnl_MainLeft";
-            this.pnl_MainLeft.Size = new System.Drawing.Size(258, 516);
+            this.pnl_MainLeft.Size = new System.Drawing.Size(258, 527);
             this.pnl_MainLeft.TabIndex = 23;
             // 
             // panelBugFragRegMem
@@ -691,7 +717,7 @@ namespace NaviDoctor
             this.nudBugFrag.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.nudBugFrag.Location = new System.Drawing.Point(83, 38);
             this.nudBugFrag.Maximum = new decimal(new int[] {
-            99,
+            9999,
             0,
             0,
             0});
@@ -895,7 +921,7 @@ namespace NaviDoctor
             this.panel_MegamanZennyAndSteamID.Controls.Add(this.steamID);
             this.panel_MegamanZennyAndSteamID.Controls.Add(this.label9);
             this.panel_MegamanZennyAndSteamID.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel_MegamanZennyAndSteamID.Location = new System.Drawing.Point(0, 416);
+            this.panel_MegamanZennyAndSteamID.Location = new System.Drawing.Point(0, 427);
             this.panel_MegamanZennyAndSteamID.Name = "panel_MegamanZennyAndSteamID";
             this.panel_MegamanZennyAndSteamID.Size = new System.Drawing.Size(258, 100);
             this.panel_MegamanZennyAndSteamID.TabIndex = 19;
@@ -906,7 +932,7 @@ namespace NaviDoctor
             this.cbx_EditSteamID.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.cbx_EditSteamID.Location = new System.Drawing.Point(8, 74);
             this.cbx_EditSteamID.Name = "cbx_EditSteamID";
-            this.cbx_EditSteamID.Size = new System.Drawing.Size(194, 29);
+            this.cbx_EditSteamID.Size = new System.Drawing.Size(131, 20);
             this.cbx_EditSteamID.TabIndex = 16;
             this.cbx_EditSteamID.Text = "Change Steam ID";
             this.cbx_EditSteamID.UseVisualStyleBackColor = true;
@@ -960,6 +986,7 @@ namespace NaviDoctor
             // 
             // pnl_MainFill
             // 
+            this.pnl_MainFill.Controls.Add(this.panelRegChip);
             this.pnl_MainFill.Controls.Add(this.pnl_PackQuantity);
             this.pnl_MainFill.Controls.Add(this.tabsFolders);
             this.pnl_MainFill.Controls.Add(this.dgvPack);
@@ -968,34 +995,103 @@ namespace NaviDoctor
             this.pnl_MainFill.Controls.Add(this.lblFolderCount);
             this.pnl_MainFill.Controls.Add(this.btnRemoveChip);
             this.pnl_MainFill.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pnl_MainFill.Location = new System.Drawing.Point(258, 36);
+            this.pnl_MainFill.Location = new System.Drawing.Point(258, 33);
             this.pnl_MainFill.Name = "pnl_MainFill";
-            this.pnl_MainFill.Size = new System.Drawing.Size(757, 516);
+            this.pnl_MainFill.Size = new System.Drawing.Size(870, 527);
             this.pnl_MainFill.TabIndex = 24;
+            // 
+            // panelRegChip
+            // 
+            this.panelRegChip.Controls.Add(this.cbxRegChip);
+            this.panelRegChip.Controls.Add(this.btnSetRegChip);
+            this.panelRegChip.Controls.Add(this.label18);
+            this.panelRegChip.Location = new System.Drawing.Point(6, 494);
+            this.panelRegChip.Name = "panelRegChip";
+            this.panelRegChip.Size = new System.Drawing.Size(406, 39);
+            this.panelRegChip.TabIndex = 24;
+            // 
+            // cbxRegChip
+            // 
+            this.cbxRegChip.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
+            this.cbxRegChip.FormattingEnabled = true;
+            this.cbxRegChip.Location = new System.Drawing.Point(75, 4);
+            this.cbxRegChip.Name = "cbxRegChip";
+            this.cbxRegChip.Size = new System.Drawing.Size(236, 24);
+            this.cbxRegChip.TabIndex = 2;
+            // 
+            // btnSetRegChip
+            // 
+            this.btnSetRegChip.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
+            this.btnSetRegChip.Location = new System.Drawing.Point(317, 4);
+            this.btnSetRegChip.Name = "btnSetRegChip";
+            this.btnSetRegChip.Size = new System.Drawing.Size(67, 25);
+            this.btnSetRegChip.TabIndex = 1;
+            this.btnSetRegChip.Text = "Set";
+            this.btnSetRegChip.UseVisualStyleBackColor = true;
+            this.btnSetRegChip.Click += new System.EventHandler(this.btnSetRegChip_Click);
+            // 
+            // label18
+            // 
+            this.label18.AutoSize = true;
+            this.label18.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
+            this.label18.Location = new System.Drawing.Point(3, 4);
+            this.label18.Name = "label18";
+            this.label18.Size = new System.Drawing.Size(66, 17);
+            this.label18.TabIndex = 0;
+            this.label18.Text = "RegChip:";
             // 
             // pnl_PackQuantity
             // 
             this.pnl_PackQuantity.Controls.Add(this.btnSetPackQuantity);
             this.pnl_PackQuantity.Controls.Add(this.nudPackQuantity);
-            this.pnl_PackQuantity.Location = new System.Drawing.Point(581, 467);
+            this.pnl_PackQuantity.Location = new System.Drawing.Point(692, 467);
             this.pnl_PackQuantity.Name = "pnl_PackQuantity";
             this.pnl_PackQuantity.Size = new System.Drawing.Size(166, 42);
             this.pnl_PackQuantity.TabIndex = 23;
             // 
+            // pbx_Loading
+            // 
+            this.pbx_Loading.Dock = System.Windows.Forms.DockStyle.Left;
+            this.pbx_Loading.Image = ((System.Drawing.Image)(resources.GetObject("pbx_Loading.Image")));
+            this.pbx_Loading.Location = new System.Drawing.Point(5, 0);
+            this.pbx_Loading.Name = "pbx_Loading";
+            this.pbx_Loading.Size = new System.Drawing.Size(46, 74);
+            this.pbx_Loading.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.pbx_Loading.TabIndex = 24;
+            this.pbx_Loading.TabStop = false;
+            this.pbx_Loading.Visible = false;
+            // 
             // pnl_MainFooter
             // 
+            this.pnl_MainFooter.Controls.Add(this.lbl_Loading);
+            this.pnl_MainFooter.Controls.Add(this.pbx_Loading);
             this.pnl_MainFooter.Controls.Add(this.lblGameVersion);
             this.pnl_MainFooter.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.pnl_MainFooter.Location = new System.Drawing.Point(0, 552);
+            this.pnl_MainFooter.Location = new System.Drawing.Point(0, 560);
             this.pnl_MainFooter.Name = "pnl_MainFooter";
-            this.pnl_MainFooter.Size = new System.Drawing.Size(1015, 37);
+            this.pnl_MainFooter.Padding = new System.Windows.Forms.Padding(5, 0, 0, 0);
+            this.pnl_MainFooter.Size = new System.Drawing.Size(1128, 74);
             this.pnl_MainFooter.TabIndex = 25;
+            // 
+            // lbl_Loading
+            // 
+            this.lbl_Loading.AutoSize = true;
+            this.lbl_Loading.Dock = System.Windows.Forms.DockStyle.Left;
+            this.lbl_Loading.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, ((System.Drawing.FontStyle)((System.Drawing.FontStyle.Bold | System.Drawing.FontStyle.Italic))), System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lbl_Loading.ForeColor = System.Drawing.SystemColors.ControlDarkDark;
+            this.lbl_Loading.Location = new System.Drawing.Point(51, 0);
+            this.lbl_Loading.Name = "lbl_Loading";
+            this.lbl_Loading.Padding = new System.Windows.Forms.Padding(0, 25, 0, 0);
+            this.lbl_Loading.Size = new System.Drawing.Size(152, 58);
+            this.lbl_Loading.TabIndex = 25;
+            this.lbl_Loading.Text = "Loading...";
+            this.lbl_Loading.Visible = false;
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(17F, 33F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1015, 589);
+            this.ClientSize = new System.Drawing.Size(1128, 634);
             this.Controls.Add(this.pnl_MainFill);
             this.Controls.Add(this.pnl_MainLeft);
             this.Controls.Add(this.pnl_MainFooter);
@@ -1048,7 +1144,10 @@ namespace NaviDoctor
             this.pnl_MegamanHealth.PerformLayout();
             this.pnl_MainFill.ResumeLayout(false);
             this.pnl_MainFill.PerformLayout();
+            this.panelRegChip.ResumeLayout(false);
+            this.panelRegChip.PerformLayout();
             this.pnl_PackQuantity.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.pbx_Loading)).EndInit();
             this.pnl_MainFooter.ResumeLayout(false);
             this.pnl_MainFooter.PerformLayout();
             this.ResumeLayout(false);
@@ -1124,6 +1223,14 @@ namespace NaviDoctor
         private System.Windows.Forms.ToolStripMenuItem programAdvanceMemoToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
+        private System.Windows.Forms.PictureBox pbx_Loading;
+        private System.Windows.Forms.Label lbl_Loading;
+        private System.Windows.Forms.ToolStripMenuItem naviCustToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem customizeToolStripMenuItem;
+        private System.Windows.Forms.Panel panelRegChip;
+        private System.Windows.Forms.Button btnSetRegChip;
+        private System.Windows.Forms.Label label18;
+        private System.Windows.Forms.ComboBox cbxRegChip;
     }
 }
 

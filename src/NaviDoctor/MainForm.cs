@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using NaviDoctor.extensions;
+using NaviDoctor.helpers;
 using NaviDoctor.models;
 
 namespace NaviDoctor
@@ -18,7 +19,7 @@ namespace NaviDoctor
         private SaveDataObject saveData;
         private List<Style> _styles;
         private SaveParse _openFile;
-
+        private int loadSpinCount = 0;
         public MainForm()
         {
             InitializeComponent();
@@ -112,6 +113,19 @@ namespace NaviDoctor
                             libraryData = saveData.LibraryData;
                         }
                         break;
+                    case GameTitle.Title.MegaManBattleNetwork3Blue:
+                    case GameTitle.Title.MegaManBattleNetwork3White:
+                        chipNameMap = BattleChipData.BN3ChipNameMap;
+                        paIndexStart = 0x140;
+                        if (paLib)
+                        {
+                            libraryData = saveData.PALibraryData;
+                        }
+                        else
+                        {
+                            libraryData = saveData.LibraryData;
+                        }
+                        break;
                     default:
                         return;
                 }
@@ -154,6 +168,24 @@ namespace NaviDoctor
                 form.ShowDialog();
             }
         }
+
+        private void ShowLoading()
+        {
+            pbx_Loading.Visible = true;
+            lbl_Loading.Visible = true;
+            loadSpinCount++;
+        }
+
+        private void HideLoading()
+        {
+            loadSpinCount--;
+            if (loadSpinCount == 0)
+            {
+                pbx_Loading.Visible = false;
+                lbl_Loading.Visible = false;
+            }
+        }
+
         private void GenerateLibraryWindow(SaveDataObject saveData, bool paLib = false)
         {
             LibraryWindow libraryWindow = new LibraryWindow();
@@ -178,6 +210,16 @@ namespace NaviDoctor
                     {
                         standardStartID = 0x110;
                         standardStopID = 0x12F;
+                    }
+                    break;
+                case GameTitle.Title.MegaManBattleNetwork3Blue:
+                case GameTitle.Title.MegaManBattleNetwork3White:
+                    standardStopID = 0x138;
+                    chipNameMap = BattleChipData.BN3ChipNameMap;
+                    if (paLib)
+                    {
+                        standardStartID = 0x140;
+                        standardStopID = 0x15F;
                     }
                     break;
                 default:
@@ -232,6 +274,10 @@ namespace NaviDoctor
                 case GameTitle.Title.MegaManBattleNetwork2:
                     packChips = saveData.BattleChips.Concat(saveData.NaviChips).Concat(saveData.SecretChips).ToList();
                     break;
+                case GameTitle.Title.MegaManBattleNetwork3Blue:
+                case GameTitle.Title.MegaManBattleNetwork3White:
+                    packChips = saveData.BattleChips.Concat(saveData.NaviChips).ToList();
+                    break;
                 default:
                     return;
             }
@@ -249,12 +295,34 @@ namespace NaviDoctor
             dataView.Table.Columns.Add("Code", typeof(string));
             dataView.Table.Columns.Add("Quantity", typeof(int));
 
-            foreach (var entry in entries)
+            if(saveData.GameName != GameTitle.Title.MegaManBattleNetwork)
             {
-                dataView.Table.Rows.Add(entry.ID, entry.Name, entry.Code, entry.Quantity);
+                dataView.Table.Columns.Add("MB", typeof(int)); 
+                foreach (var entry in entries)
+                {
+                    switch (saveData.GameName)
+                    {
+                        case GameTitle.Title.MegaManBattleNetwork2:
+                            dataView.Table.Rows.Add(entry.ID, entry.Name, entry.Code, entry.Quantity, entry.Size);
+                            break;
+                        case GameTitle.Title.MegaManBattleNetwork3White:
+                            if (entry.Type != 4) dataView.Table.Rows.Add(entry.ID, entry.Name, entry.Code, entry.Quantity, entry.Size);
+                            break;
+                        case GameTitle.Title.MegaManBattleNetwork3Blue:
+                            if (entry.Type != 3) dataView.Table.Rows.Add(entry.ID, entry.Name, entry.Code, entry.Quantity, entry.Size);
+                            break;
+                    }
+                }
+            }
+            else
+            {
+                foreach (var entry in entries)
+                {
+                    dataView.Table.Rows.Add(entry.ID, entry.Name, entry.Code, entry.Quantity);
+                }
             }
 
-            dataView.RowFilter = "Code <> 'None'";
+            dataView.RowFilter = "Code <> 'None' AND Code <> '+'";
 
             dgvPack.DataSource = dataView;
 
@@ -263,8 +331,12 @@ namespace NaviDoctor
             dgvPack.Columns["Name"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
             dgvPack.Columns["Code"].ReadOnly = true;
             dgvPack.Columns["Quantity"].ReadOnly = false;
+            if (saveData.GameName != GameTitle.Title.MegaManBattleNetwork)
+            {
+                dgvPack.Columns["MB"].ReadOnly = true;
+            }
 
-            dgvPack.AutoResizeColumns();
+            dgvPack.RowHeadersWidth = 30;
         }
         private void LoadFolderData(SaveDataObject saveData)
         {
@@ -300,6 +372,36 @@ namespace NaviDoctor
                                     break;
                             }
                         }
+                        PopulateRegChipCombobox();
+                        break;
+                    }
+                case GameTitle.Title.MegaManBattleNetwork3White:
+                case GameTitle.Title.MegaManBattleNetwork3Blue:
+                    {
+                        for (var i = 1; i <= saveData.Folders; i++) // Just a copy/paste of BN2 for now.
+                        {
+                            switch (i)
+                            {
+                                case 1:
+                                    {
+                                        PopulateFolderDataGridView(dgvFolder1, saveData.FolderData);
+                                        break;
+                                    }
+                                case 2:
+                                    {
+                                        PopulateFolderDataGridView(dgvFolder2, saveData.Folder3Data); 
+                                        break;
+                                    }
+                                case 3:
+                                    {
+                                        PopulateFolderDataGridView(dgvFolder3, saveData.Folder2Data); // This is Xtra Folder
+                                        break;
+                                    }
+                                default:
+                                    break;
+                            }
+                        }
+                        PopulateRegChipCombobox();
                         break;
                     }
             }
@@ -311,6 +413,11 @@ namespace NaviDoctor
             folderDataTable.Columns.Add("ID", typeof(int));
             folderDataTable.Columns.Add("Name", typeof(string));
             folderDataTable.Columns.Add("Code", typeof(string));
+            if(saveData.GameName != GameTitle.Title.MegaManBattleNetwork)
+            {
+                folderDataTable.Columns.Add("MB", typeof(int));
+            }
+
             List<BattleChipData> chipNameMap;
             switch (saveData.GameName)
             {
@@ -319,6 +426,10 @@ namespace NaviDoctor
                     break;
                 case GameTitle.Title.MegaManBattleNetwork2:
                     chipNameMap = BattleChipData.BN2ChipNameMap;
+                    break;
+                case GameTitle.Title.MegaManBattleNetwork3White:
+                case GameTitle.Title.MegaManBattleNetwork3Blue:
+                    chipNameMap = BattleChipData.BN3ChipNameMap;
                     break;
                 default:
                     return;
@@ -331,8 +442,16 @@ namespace NaviDoctor
 
                 string chipName = BattleChipData.GetChipNameByID(chipNameMap, chipID).Name;
                 string chipCodeLetter = GetAlphabeticalCode(chipCode);
+                if (saveData.GameName != GameTitle.Title.MegaManBattleNetwork)
+                {
+                    int size = BattleChipData.GetChipNameByID(chipNameMap, chipID).Size;
 
-                folderDataTable.Rows.Add(chipID, chipName, chipCodeLetter);
+                    folderDataTable.Rows.Add(chipID, chipName, chipCodeLetter, size);
+                }
+                else
+                {
+                    folderDataTable.Rows.Add(chipID, chipName, chipCodeLetter);
+                }
             }
             // Preserve the current selection and scroll position
             int selectedRowIndex = -1;
@@ -358,6 +477,131 @@ namespace NaviDoctor
                 dgvFolder.FirstDisplayedScrollingRowIndex = firstDisplayedScrollingRowIndex;
 
             dgvFolder.Columns["Name"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            dgvFolder.RowHeadersWidth = 30;
+
+        }
+
+        private void PopulateRegChipCombobox()
+        {
+            panelRegChip.Enabled = true;
+            var chipData = new List<BattleChipData>();
+            List<Tuple<int, int>> folderSaveData = null;
+            List<BattleChipData> chipNameMap;
+
+            switch (saveData.GameName)
+            {
+                case GameTitle.Title.MegaManBattleNetwork2:
+                    chipNameMap = BattleChipData.BN2ChipNameMap;
+                    break;
+                case GameTitle.Title.MegaManBattleNetwork3White:
+                case GameTitle.Title.MegaManBattleNetwork3Blue:
+                    chipNameMap = BattleChipData.BN3ChipNameMap;
+                    break;
+                default:
+                    return;
+            }
+
+            //This is because of the way Extra Folder is saved into Folder2Data
+            switch (saveData.GameName)
+            {
+                case GameTitle.Title.MegaManBattleNetwork2:
+                    switch (tabsFolders.SelectedIndex)
+                    {
+                        case 0:
+                            folderSaveData = saveData.FolderData;
+                            break;
+                        case 1:
+                            folderSaveData = saveData.Folder2Data;
+                            break;
+                        case 2:
+                            folderSaveData = saveData.Folder3Data;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                case GameTitle.Title.MegaManBattleNetwork3White:
+                case GameTitle.Title.MegaManBattleNetwork3Blue:
+                    switch (tabsFolders.SelectedIndex)
+                    {
+                        case 0:
+                            folderSaveData = saveData.FolderData;
+                            break;
+                        case 1:
+                            folderSaveData = saveData.Folder3Data;
+                            break;
+                        case 2:
+                            cbxRegChip.DataSource = null;
+                            panelRegChip.Enabled = false;
+                            return; //no reg chip for extra folder
+                        default:
+                            break;
+                    }
+                    break;
+                default:
+                    return;
+            }
+
+            foreach (var folderData in folderSaveData)
+            {
+                int chipID = folderData.Item1;
+                int chipCode = folderData.Item2;
+
+                string chipCodeLetter = GetAlphabeticalCode(chipCode);
+
+                var bcd = BattleChipData.GetChipNameByID(chipNameMap, chipID);
+                bcd.AlphabeticalCode = chipCodeLetter;
+                chipData.Add(bcd);
+            }
+
+
+            cbxRegChip.DataSource = chipData;
+            cbxRegChip.DisplayMember = "RegChipDisplayMember";
+            cbxRegChip.ValueMember = "ID";
+            var currentRegChipIndex = 0;
+
+            switch (saveData.GameName)
+            {
+                case GameTitle.Title.MegaManBattleNetwork2:
+                    switch (tabsFolders.SelectedIndex)
+                    {
+                        case 0:
+                            currentRegChipIndex = saveData.RegChip1;
+                            break;
+                        case 1:
+                            currentRegChipIndex = saveData.RegChip2;
+                            break;
+                        case 2:
+                            currentRegChipIndex = saveData.RegChip3;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                case GameTitle.Title.MegaManBattleNetwork3White:
+                case GameTitle.Title.MegaManBattleNetwork3Blue:
+                    switch (tabsFolders.SelectedIndex)
+                    {
+                        case 0:
+                            currentRegChipIndex = saveData.RegChip1;
+                            break;
+                        case 1:
+                            currentRegChipIndex = saveData.RegChip2;
+                            break;
+                        case 2:
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                default:
+                    return;
+            }
+
+            if (currentRegChipIndex != -1 && currentRegChipIndex != 255)
+            {
+                cbxRegChip.SelectedIndex = currentRegChipIndex;
+            }
         }
 
         private void btnRemoveChip_Click(object sender, EventArgs e)
@@ -386,6 +630,32 @@ namespace NaviDoctor
                             case 2:
                                 {
                                     RemoveChip(dgvFolder3, saveData.Folder3Data);
+                                    break;
+                                }
+                            default:
+                                break;
+                        }
+                        break;
+                    }
+                case GameTitle.Title.MegaManBattleNetwork3Blue:
+                case GameTitle.Title.MegaManBattleNetwork3White:
+                    {
+                        switch (tabsFolders.SelectedIndex)
+                        {
+                            case 0:
+                                {
+                                    RemoveChip(dgvFolder1, saveData.FolderData);
+                                    break;
+                                }
+                            case 1:
+                                {
+                                    RemoveChip(dgvFolder2, saveData.Folder3Data); 
+                                    break;
+                                }
+                            case 2:
+                                {
+                                    MessageBox.Show("Unable to edit the Xtra Folder");
+                                    // RemoveChip(dgvFolder3, saveData.Folder2Data); // Can't edit Xtra Folder
                                     break;
                                 }
                             default:
@@ -434,31 +704,51 @@ namespace NaviDoctor
 
         // check the quantity of a chip ID and code in the Folder
         private int GetChipQuantityInFolder(int chipID, string chipCode)
-        { 
-            if (chipCode != "*") return saveData.FolderData.Count(data => data.Item1 == chipID && data.Item2 == (byte)(chipCode[0] - 'A'));
-            return saveData.FolderData.Count(data => data.Item1 == chipID && data.Item2 == 26);
+        {
+            switch (saveData.GameName)
+            {
+                case GameTitle.Title.MegaManBattleNetwork:
+                    if (chipCode != "*") return saveData.FolderData.Count(data => data.Item1 == chipID && data.Item2 == (byte)(chipCode[0] - 'A'));
+                    return saveData.FolderData.Count(data => data.Item1 == chipID && data.Item2 == 26);
+                case GameTitle.Title.MegaManBattleNetwork2:
+                    if (chipCode != "*") return saveData.FolderData.Count(data => data.Item1 == chipID && data.Item2 == (byte)(chipCode[0] - 'A')) + saveData.Folder2Data.Count(data => data.Item1 == chipID && data.Item2 == (byte)(chipCode[0] - 'A')) + saveData.Folder3Data.Count(data => data.Item1 == chipID && data.Item2 == (byte)(chipCode[0] - 'A'));
+                    return saveData.FolderData.Count(data => data.Item1 == chipID && data.Item2 == 26) + saveData.Folder2Data.Count(data => data.Item1 == chipID && data.Item2 == 26) + saveData.Folder3Data.Count(data => data.Item1 == chipID && data.Item2 == 26);
+                case GameTitle.Title.MegaManBattleNetwork3White:
+                case GameTitle.Title.MegaManBattleNetwork3Blue:
+                    if (chipCode != "*") return saveData.FolderData.Count(data => data.Item1 == chipID && data.Item2 == (byte)(chipCode[0] - 'A')) + saveData.Folder3Data.Count(data => data.Item1 == chipID && data.Item2 == (byte)(chipCode[0] - 'A'));
+                    return saveData.FolderData.Count(data => data.Item1 == chipID && data.Item2 == 26) + saveData.Folder3Data.Count(data => data.Item1 == chipID && data.Item2 == 26);
+                default:
+                    return 0;
+            }
         }
+
         private void btnAddChip_Click(object sender, EventArgs e)
         {
             List<Tuple<int, int>> folderData;
-            int battleIDHigh;
-            int naviIDLow;
-            int naviIDHigh;
-            int secretIDLow;
-            int secretIDHigh;
-            int maxBattleChipCopies;
-            int maxNaviChips;
+            int battleIDHigh = 0;
+            int naviIDLow = 0;
+            int naviIDHigh = 0;
+            int secretIDLow = 0;
+            int secretIDHigh = 0;
+            int maxBattleChipCopies = 0;
+            int maxNaviChips = 0;
             int maxTotalChipsInFolder = 30;
-            bool isBattleChip;
-            bool isNaviChip;
+            bool isBattleChip = false;
+            bool isNaviChip = false;
+            bool isMegaChip = false;
+            bool isGigaChip = false;
+            int megaLimit = 0;
+            int gigaLimit = 0;
             List<BattleChipData> chipNameMap;
             switch (tabsFolders.SelectedIndex) // Check which folder is currently selected
             {
                 case 1:
                     folderData = saveData.Folder2Data;
+                    if (saveData.GameName > GameTitle.Title.MegaManBattleNetwork3White) folderData = saveData.Folder3Data;
                     break;
                 case 2:
                     folderData = saveData.Folder3Data;
+                    if (saveData.GameName > GameTitle.Title.MegaManBattleNetwork3White) folderData = saveData.Folder2Data;
                     break;
                 default:
                     folderData = saveData.FolderData;
@@ -471,8 +761,6 @@ namespace NaviDoctor
                     battleIDHigh = 147;
                     naviIDLow = 148;
                     naviIDHigh = 239;
-                    secretIDLow = 0;
-                    secretIDHigh = 0;
                     maxBattleChipCopies = 10;
                     maxNaviChips = 5;
                     chipNameMap = BattleChipData.BN1ChipNameMap;
@@ -487,6 +775,17 @@ namespace NaviDoctor
                     maxNaviChips = 5;
                     chipNameMap = BattleChipData.BN2ChipNameMap;
                     break;
+                case GameTitle.Title.MegaManBattleNetwork3White:
+                case GameTitle.Title.MegaManBattleNetwork3Blue:
+                    battleIDHigh = 0xC8;
+                    naviIDLow = 0xC9;
+                    naviIDHigh = 0x138;
+                    maxBattleChipCopies = 4;
+                    megaLimit = saveData.MegaLimit;
+                    gigaLimit = saveData.GigaLimit;
+                    maxNaviChips = 5;
+                    chipNameMap = BattleChipData.BN3ChipNameMap;
+                    break;
                 default:
                     return;
             }
@@ -500,7 +799,8 @@ namespace NaviDoctor
 
                 // Check if the Folder has reached the maximum number of copies for the selected chip ID
                 int currentChipCopies = folderData.Count(data => data.Item1 == chipID);
-                int currentNaviChips;
+                int currentNaviChips = 0;
+                int currentGigaChips = 0;
 
                 switch (saveData.GameName)
                 {
@@ -514,18 +814,44 @@ namespace NaviDoctor
                         isBattleChip = (chipID >= 1 && chipID <= battleIDHigh) || (chipID >= secretIDLow && chipID <= 260) || (chipID >= 266 && chipID <= secretIDHigh); // Secret NetBattle reward chips
                         isNaviChip = (chipID >= naviIDLow && chipID <= naviIDHigh) || (chipID >= 261 && chipID <= 265); // Event Navis
                         break;
+                    case GameTitle.Title.MegaManBattleNetwork3Blue:
+                    case GameTitle.Title.MegaManBattleNetwork3White:
+                        currentNaviChips = folderData.Count(data => data.Item1 >= naviIDLow && data.Item1 <= naviIDHigh && chipNameMap.FirstOrDefault(chip => chip.ID == data.Item1).Type == 1); // current count of mega chips
+                        currentGigaChips = folderData.Count(data => data.Item1 >= naviIDLow && data.Item1 <= naviIDHigh && chipNameMap.FirstOrDefault(chip => chip.ID == data.Item1).Type > 1); // current count of giga chips
+                        isBattleChip = chipNameMap.FirstOrDefault(data => data.ID == chipID).Type == 0;
+                        isNaviChip = chipNameMap.FirstOrDefault(data => data.ID == chipID).Type != 0;
+                        isMegaChip = chipNameMap.FirstOrDefault(data => data.ID == chipID).Type == 1;
+                        isGigaChip = chipNameMap.FirstOrDefault(data => data.ID == chipID).Type >= 2;
+                        break;
                     default:
                         return;
                 }
 
+                string chipName = BattleChipData.GetChipNameByID(chipNameMap, chipID).Name;
+
                 if (isBattleChip && currentChipCopies >= maxBattleChipCopies)
                 {
-                    string chipName = BattleChipData.GetChipNameByID(chipNameMap, chipID).Name;
                     MessageBox.Show($"The limit for {chipName} cannot exceed {maxBattleChipCopies}.");
                 }
-                else if (isNaviChip && currentNaviChips >= maxNaviChips)
+                else if (isNaviChip && currentNaviChips >= maxNaviChips && saveData.GameName <= GameTitle.Title.MegaManBattleNetwork2)
                 {
                     MessageBox.Show($"The limit for Navi Chips cannot exceed {maxNaviChips}.");
+                }
+                else if (isNaviChip && saveData.GameName >= GameTitle.Title.MegaManBattleNetwork3White && isMegaChip && currentChipCopies < 1 && currentNaviChips >= megaLimit)
+                {
+                    MessageBox.Show($"The limit for Mega Chips cannot exceed {megaLimit}.");
+                }
+                else if (isNaviChip && saveData.GameName >= GameTitle.Title.MegaManBattleNetwork3White && isMegaChip && currentChipCopies >= 1)
+                {
+                    MessageBox.Show($"You may only have one copy of {chipName} in this folder.");
+                }
+                else if (isNaviChip && saveData.GameName >= GameTitle.Title.MegaManBattleNetwork3White && isGigaChip && currentChipCopies < 1 && currentGigaChips >= gigaLimit)
+                {
+                    MessageBox.Show($"The limit for Giga Chips cannot exceed {gigaLimit}.");
+                }
+                else if (isNaviChip && saveData.GameName >= GameTitle.Title.MegaManBattleNetwork3White && isGigaChip && currentChipCopies >= 1)
+                {
+                    MessageBox.Show($"You may only have one copy of {chipName} in this folder.");
                 }
                 else if (folderData.Count >= maxTotalChipsInFolder)
                 {
@@ -577,6 +903,12 @@ namespace NaviDoctor
                     saveData.NaviChips = GeneratePackage(194, 250, 2, chipCodeMap);
                     saveData.SecretChips = GeneratePackage(251, 271, 6, chipCodeMap);
                     break;
+                case GameTitle.Title.MegaManBattleNetwork3White:
+                case GameTitle.Title.MegaManBattleNetwork3Blue:
+                    chipCodeMap = BattleChipData.BN3ChipCodeMap;
+                    saveData.BattleChips = GeneratePackage(1, 0xC8, 6, chipCodeMap);
+                    saveData.NaviChips = GeneratePackage(0xC9, 0x138, 2, chipCodeMap);
+                    break;
             }
         }
 
@@ -609,7 +941,7 @@ namespace NaviDoctor
             OpenFileDialog openFile = new OpenFileDialog();
             openFile.Title = "Open MMBN Save File...";
             openFile.InitialDirectory = @"C:\Program Files (x86)\Steam\userdata";
-            openFile.Filter = "Legacy Collection Save File|*save_0.bin|MMBN1 Save File|exe1_save_0.bin|MMBN2 Save File|exe2j_save_0.bin|All Files|*.*";
+            openFile.Filter = "Legacy Collection Save File|*save_0.bin|MMBN1 Save File|exe1_save_0.bin|MMBN2 Save File|exe2j_save_0.bin|MMBN3 Save File|exe3?_save_0.bin|All Files|*.*";
             openFile.RestoreDirectory = true;
             if (openFile.ShowDialog() == DialogResult.OK)
             {
@@ -634,24 +966,55 @@ namespace NaviDoctor
             PopulateDataGridView(battleChipData, saveData);
 
             LoadFolderData(saveData);
-
-            maxHPStat.Value = saveData.MaxHP;
-            attackStat.Value = saveData.AttackPower + 1;
-            rapidStat.Value = saveData.RapidPower + 1;
-            chargeStat.Value = saveData.ChargePower + 1;
+            saveData.BonusHP = 0;
+            maxHPStat.Value = (saveData.HPUp * 20) + 100; // Calculate base HP based on how many HP ups were obtained.
+            if (saveData.GameName == GameTitle.Title.MegaManBattleNetwork || saveData.GameName == GameTitle.Title.MegaManBattleNetwork2)
+            {
+                attackStat.Value = saveData.AttackPower + 1;
+                rapidStat.Value = saveData.RapidPower + 1;
+                chargeStat.Value = saveData.ChargePower + 1;
+            }
             zennyBox.Value = saveData.Zenny;
             steamID.Value = saveData.SteamID;
 
             switch (saveData.GameName)
             {
                 case GameTitle.Title.MegaManBattleNetwork:
-                    LoadStyles(saveData); // This is loaded by all Vol.1 games, but not Vol.2 games.
+                    saveData.LoadStyles(ref _styles);
                     nudBugFrag.Value = 0; // It bothered me seeing my BugFrags and RegMem from BN2 when I loaded BN1 over it.
                     nudRegMem.Value = 0;  // So they're 0 now.
                     break;
 
                 case GameTitle.Title.MegaManBattleNetwork2:
-                    LoadStyles(saveData);
+                    saveData.LoadStyles(ref _styles);
+                    nudBugFrag.Value = saveData.BugFrags;
+                    nudRegMem.Value = saveData.RegMem;
+                    nudSubChipMax.Value = saveData.SubChipMax;
+                    nudMiniEnrg.Value = saveData.SubMiniEnrg;
+                    nudFullEnrg.Value = saveData.SubFullEnrg;
+                    nudLocEnemy.Value = saveData.SubLocEnemy;
+                    nudSneakRun.Value = saveData.SubSneakRun;
+                    nudUnlocker.Value = saveData.SubUnlocker;
+                    nudUntrap.Value = saveData.SubUntrap;
+                    break;
+                case GameTitle.Title.MegaManBattleNetwork3White:
+                case GameTitle.Title.MegaManBattleNetwork3Blue:
+                    saveData.BonusHP = (short)(saveData.MaxHP - maxHPStat.Value);
+                    saveData.AttackPower += 1;
+                    saveData.LoadStyles(ref _styles);
+                        string equipstyle = _styles.FirstOrDefault(x => x.Equip == true).Name.ToString();
+                        if (equipstyle.Contains("Guts"))
+                        {
+                            saveData.AttackPower = (byte)(saveData.AttackPower / 2);
+                        }
+                        else if (equipstyle.Contains("Team"))
+                        {
+                            saveData.MegaLimit -= 1;
+                        }
+                        else if (equipstyle.Contains("Cust"))
+                        {
+                            saveData.CustEffects[18] -= 1;
+                        }
                     nudBugFrag.Value = saveData.BugFrags;
                     nudRegMem.Value = saveData.RegMem;
                     nudSubChipMax.Value = saveData.SubChipMax;
@@ -663,7 +1026,6 @@ namespace NaviDoctor
                     nudUntrap.Value = saveData.SubUntrap;
                     break;
             }
-
 
             //Show the current game loaded
             lblGameVersion.Text = $"Loaded: {saveData.GameName.GetString()}";
@@ -693,6 +1055,14 @@ namespace NaviDoctor
                     saveFile.FileName = "exe2j_save_0.bin";
                     saveFile.Filter = "MMBN2 Save File|exe2j_save_0.bin|All Files|*.*";
                     break;
+                case GameTitle.Title.MegaManBattleNetwork3White:
+                    saveFile.FileName = "exe3w_save_0.bin";
+                    saveFile.Filter = "MMBN3W Save File|exe3w_save_0.bin|All Files|*.*";
+                    break;
+                case GameTitle.Title.MegaManBattleNetwork3Blue:
+                    saveFile.FileName = "exe3b_save_0.bin";
+                    saveFile.Filter = "MMBN3B Save File|exe3b_save_0.bin|All Files|*.*";
+                    break;
 
             }
             saveFile.RestoreDirectory = true;
@@ -717,11 +1087,24 @@ namespace NaviDoctor
 
         private void SaveFile(SaveParse saveParse)
         {
-            saveData.MaxHP = (short)maxHPStat.Value;
-            saveData.CurrHP = (short)maxHPStat.Value;
-            saveData.AttackPower = (byte)(attackStat.Value - 1);
-            saveData.RapidPower = (byte)(rapidStat.Value - 1);
-            saveData.ChargePower = (byte)(chargeStat.Value - 1);
+            saveData.HPUp = (byte)((maxHPStat.Value - 100) / 20);
+            if (saveData.GameName == GameTitle.Title.MegaManBattleNetwork || saveData.GameName == GameTitle.Title.MegaManBattleNetwork2)
+            {
+                saveData.MaxHP = (short)maxHPStat.Value;
+                saveData.CurrHP = (short)maxHPStat.Value;
+                saveData.AttackPower = (byte)(attackStat.Value - 1);
+                saveData.RapidPower = (byte)(rapidStat.Value - 1);
+                saveData.ChargePower = (byte)(chargeStat.Value - 1);
+            }
+            if (saveData.GameName == GameTitle.Title.MegaManBattleNetwork2)
+            {
+                nudBugFrag.Value = Math.Min(nudBugFrag.Value, 32);
+            }
+            if (saveData.GameName == GameTitle.Title.MegaManBattleNetwork3White || saveData.GameName == GameTitle.Title.MegaManBattleNetwork3Blue)
+            {
+                saveData.MaxHP = (short)(maxHPStat.Value + saveData.BonusHP);
+                saveData.CurrHP = saveData.MaxHP;
+            }
             saveData.Zenny = (int)zennyBox.Value;
             saveData.SteamID = (int)steamID.Value;
             PackageChips();
@@ -729,12 +1112,30 @@ namespace NaviDoctor
             switch (saveData.GameName)
             {
                 case GameTitle.Title.MegaManBattleNetwork:
-                    UpdateStyles(saveData);
+                    saveData.UpdateStyles(ref _styles);
                     break;
-
                 case GameTitle.Title.MegaManBattleNetwork2:
-                    UpdateStyles(saveData);
-                    saveData.BugFrags = (byte)nudBugFrag.Value; 
+                case GameTitle.Title.MegaManBattleNetwork3White:
+                case GameTitle.Title.MegaManBattleNetwork3Blue:
+                    saveData.UpdateStyles(ref _styles);
+                    if (saveData.GameName != GameTitle.Title.MegaManBattleNetwork2)
+                    {
+                        string equipstyle = _styles.FirstOrDefault(x => x.Equip == true).Name.ToString();
+                        if (equipstyle.Contains("Guts"))
+                        {
+                            saveData.AttackPower = (byte)(saveData.AttackPower * 2);
+                        }
+                        else if (equipstyle.Contains("Team"))
+                        {
+                            saveData.MegaLimit += 1;
+                        }
+                        else if (equipstyle.Contains("Cust"))
+                        {
+                            saveData.CustEffects[18] += 1;
+                        }
+                    }
+                    saveData.AttackPower -= 1;
+                    saveData.BugFrags = (int)nudBugFrag.Value; 
                     saveData.RegMem = (byte)nudRegMem.Value;
                     saveData.SubChipMax = (byte)nudSubChipMax.Value;
                     saveData.SubMiniEnrg = (byte)nudMiniEnrg.Value;
@@ -755,1281 +1156,20 @@ namespace NaviDoctor
             MessageBox.Show("Save data successfully updated!");
         }
 
-        private void LoadStyles(SaveDataObject saveData)
+        private async void btnSetPackQuantity_Click(object sender, EventArgs e)
         {
-            List<Style> _tempStyles;
-
-            switch (saveData.GameName)
-            {
-                case GameTitle.Title.MegaManBattleNetwork:
-                    {
-                        _tempStyles = Style.BN1;
-
-                        if (saveData.Style1 == 1)
-                        {
-                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Heat).Add = true;
-                        }
-                        if (saveData.Style2 == 1)
-                        {
-                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Aqua).Add = true;
-                        }
-                        if (saveData.Style3 == 1)
-                        {
-                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Wood).Add = true;
-                        }
-
-                        if (saveData.EqStyle == 02)
-                        {
-                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Heat).Equip = true;
-                        }
-                        else if (saveData.EqStyle == 03)
-                        {
-                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Aqua).Equip = true;
-                        }
-                        else if (saveData.EqStyle == 04)
-                        {
-                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Wood).Equip = true;
-                        }
-                        else
-                        {
-                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Normal).Equip = true;
-                        }
-
-                        _styles = _tempStyles;
-                        break;
-                    }
-                case GameTitle.Title.MegaManBattleNetwork2:
-                    {
-                        _tempStyles = Style.BN2;
-                        var index = 0;
-
-                        foreach(var style in saveData.StyleTypes)
-                        {
-                            var hex = Convert.ToString(style, 16).ToUpper();
-                            switch (hex)
-                            {
-                                case "190": //Normal
-                                    break;
-                                case "196": //ElecGuts
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecGuts).Add = true;
-                                    switch(index)
-                                    {
-                                        case 1:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecGuts).Version = saveData.Style1;
-                                            break;
-                                        case 2:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecGuts).Version = saveData.Style2;
-                                            break;
-                                    }
-                                    break;
-                                case "197": //HeatGuts
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatGuts).Add = true;
-                                    switch (index)
-                                    {
-                                        case 1:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatGuts).Version = saveData.Style1;
-                                            break;
-                                        case 2:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatGuts).Version = saveData.Style2;
-                                            break;
-                                    }
-                                    break;
-                                case "198": //AquaGuts
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaGuts).Add = true;
-                                    switch (index)
-                                    {
-                                        case 1:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaGuts).Version = saveData.Style1;
-                                            break;
-                                        case 2:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaGuts).Version = saveData.Style2;
-                                            break;
-                                    }
-                                    break;
-                                case "199": //WoodGuts
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodGuts).Add = true;
-                                    switch (index)
-                                    {
-                                        case 1:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodGuts).Version = saveData.Style1;
-                                            break;
-                                        case 2:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodGuts).Version = saveData.Style2;
-                                            break;
-                                    }
-                                    break;
-                                case "19B": //ElecCust
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecCust).Add = true;
-                                    switch (index)
-                                    {
-                                        case 1:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecCust).Version = saveData.Style1;
-                                            break;
-                                        case 2:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecCust).Version = saveData.Style2;
-                                            break;
-                                    }
-                                    break;
-                                case "19C": //HeatCust
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatCust).Add = true;
-                                    switch (index)
-                                    {
-                                        case 1:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatCust).Version = saveData.Style1;
-                                            break;
-                                        case 2:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatCust).Version = saveData.Style2;
-                                            break;
-                                    }
-                                    break;
-                                case "19D": //AquaCust
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaCust).Add = true;
-                                    switch (index)
-                                    {
-                                        case 1:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaCust).Version = saveData.Style1;
-                                            break;
-                                        case 2:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaCust).Version = saveData.Style2;
-                                            break;
-                                    }
-                                    break;
-                                case "19E": //WoodCust
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodCust).Add = true;
-                                    switch (index)
-                                    {
-                                        case 1:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodCust).Version = saveData.Style1;
-                                            break;
-                                        case 2:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodCust).Version = saveData.Style2;
-                                            break;
-                                    }
-                                    break;
-                                case "1A0": //ElecTeam
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecTeam).Add = true;
-                                    switch (index)
-                                    {
-                                        case 1:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecTeam).Version = saveData.Style1;
-                                            break;
-                                        case 2:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecTeam).Version = saveData.Style2;
-                                            break;
-                                    }
-                                    break;
-                                case "1A1": //HeatTeam
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatTeam).Add = true;
-                                    switch (index)
-                                    {
-                                        case 1:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatTeam).Version = saveData.Style1;
-                                            break;
-                                        case 2:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatTeam).Version = saveData.Style2;
-                                            break;
-                                    }
-                                    break;
-                                case "1A2": //AquaTeam
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaTeam).Add = true;
-                                    switch (index)
-                                    {
-                                        case 1:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaTeam).Version = saveData.Style1;
-                                            break;
-                                        case 2:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaTeam).Version = saveData.Style2;
-                                            break;
-                                    }
-                                    break;
-                                case "1A3": //WoodTeam
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodTeam).Add = true;
-                                    switch (index)
-                                    {
-                                        case 1:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodTeam).Version = saveData.Style1;
-                                            break;
-                                        case 2:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodTeam).Version = saveData.Style2;
-                                            break;
-                                    }
-                                    break;
-                                case "1A5": //ElecShld
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecShield).Add = true;
-                                    switch (index)
-                                    {
-                                        case 1:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecShield).Version = saveData.Style1;
-                                            break;
-                                        case 2:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecShield).Version = saveData.Style2;
-                                            break;
-                                    }
-                                    break;
-                                case "1A6": //HeatShld
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatShield).Add = true;
-                                    switch (index)
-                                    {
-                                        case 1:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatShield).Version = saveData.Style1;
-                                            break;
-                                        case 2:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatShield).Version = saveData.Style2;
-                                            break;
-                                    }
-                                    break;
-                                case "1A7": //AquaShld
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaShield).Add = true;
-                                    switch (index)
-                                    {
-                                        case 1:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaShield).Version = saveData.Style1;
-                                            break;
-                                        case 2:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaShield).Version = saveData.Style2;
-                                            break;
-                                    }
-                                    break;
-                                case "1A8": //WoodShld
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodShield).Add = true;
-                                    switch (index)
-                                    {
-                                        case 1:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodShield).Version = saveData.Style1;
-                                            break;
-                                        case 2:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodShield).Version = saveData.Style2;
-                                            break;
-                                    }
-                                    break;
-                                case "1A9": //Hub
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Hub).Add = true;
-                                    switch (index)
-                                    {
-                                        case 1:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Hub).Version = saveData.Style1;
-                                            break;
-                                        case 2:
-                                            _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Hub).Version = saveData.Style2;
-                                            break;
-                                    }
-                                    break;
-                            }
-                            index++;
-                        }
-
-                        var equipHex = Convert.ToString(saveData.EqStyle, 16).ToUpper();
-                        
-                        switch(equipHex)
-                        {
-                            case "00": // Normal Style
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Normal).Equip = true;
-                                    break;
-                                }
-                            case "09": // Elec Guts V1
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecGuts).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecGuts).Version = 1;
-                                    break;
-                                }
-                            case "0A": // Heat Guts V1
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatGuts).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatGuts).Version = 1;
-                                    break;
-                                }
-                            case "0B": // Aqua Guts V1
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaGuts).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaGuts).Version = 1;
-                                    break;
-                                }
-                            case "0C": // Wood Guts V1
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodGuts).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodGuts).Version = 1;
-                                    break;
-                                }
-                            case "11": // Elec Custom V1
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecCust).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecCust).Version = 1;
-                                    break;
-                                }
-                            case "12": // Fire Custom V1
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatCust).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatCust).Version = 1;
-                                    break;
-                                }
-                            case "13": // Aqua Custom V1
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaCust).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaCust).Version = 1;
-                                    break;
-                                }
-                            case "14": // Wood Custom V1
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodCust).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodCust).Version = 1;
-                                    break;
-                                }
-                            case "19": // Elec Team V1
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecTeam).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecTeam).Version = 1;
-                                    break;
-                                }
-                            case "1A": // Fire Team V1
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatTeam).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatTeam).Version = 1;
-                                    break;
-                                }
-                            case "1B": // Aqua Team V1
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaTeam).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaTeam).Version = 1;
-                                    break;
-                                }
-                            case "1C": // Wood Team V1
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodTeam).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodTeam).Version = 1;
-                                    break;
-                                }
-                            case "21": // Elec Shield V1
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecShield).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecShield).Version = 1;
-                                    break;
-                                }
-                            case "22": // Fire Shield V1
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatShield).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatShield).Version = 1;
-                                    break;
-                                }
-                            case "23": // Aqua Shield V1
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaShield).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaShield).Version = 1;
-                                    break;
-                                }
-                            case "24": // Wood Shield V1
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodShield).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodShield).Version = 1;
-                                    break;
-                                }
-                            case "28": // Hub Style
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Hub).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Hub).Version = 1;
-                                    break;
-                                }
-                            case "40": // Normal Style V2
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Normal).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Normal).Version = 2;
-                                    break;
-                                }
-                            case "49": // Elec Guts V2
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecGuts).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecGuts).Version = 2;
-                                    break;
-                                }
-                            case "4A": // Heat Guts V2
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatGuts).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatGuts).Version = 2;
-                                    break;
-                                }
-                            case "4B": // Aqua Guts V2
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaGuts).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaGuts).Version = 2;
-                                    break;
-                                }
-                            case "4C": // Wood Guts V2
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodGuts).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodGuts).Version = 2;
-                                    break;
-                                }
-                            case "51": // Elec Custom V2
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecCust).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecCust).Version = 2;
-                                    break;
-                                }
-                            case "52": // Heat Custom V2
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatCust).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatCust).Version = 2;
-                                    break;
-                                }
-                            case "53": // Aqua Custom V2
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaCust).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaCust).Version = 2;
-                                    break;
-                                }
-                            case "54": // Wood Custom V2
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodCust).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodCust).Version = 2;
-                                    break;
-                                }
-                            case "59": // Elec Team V2
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecTeam).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecTeam).Version = 2;
-                                    break;
-                                }
-                            case "5A": // Heat Team V2
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatTeam).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatTeam).Version = 2;
-                                    break;
-                                }
-                            case "5B": // Aqua Team V2
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaTeam).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaTeam).Version = 2;
-                                    break;
-                                }
-                            case "5C": // Wood Team V2
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodTeam).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodTeam).Version = 2;
-                                    break;
-                                }
-                            case "61": // Elec Shield V2
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecShield).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecShield).Version = 2;
-                                    break;
-                                }
-                            case "62": // Heat Shield V2
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatShield).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatShield).Version = 2;
-                                    break;
-                                }
-                            case "63": // Aqua Shield V2
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaShield).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaShield).Version = 2;
-                                    break;
-                                }
-                            case "64": // Wood Shield V2
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodShield).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodShield).Version = 2;
-                                    break;
-                                }
-                            case "68": // Hub Style V2
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Hub).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Hub).Version = 2;
-                                    break;
-                                }
-                            case "80": // Normal Style V3
-                            case "C0": // Normal Style V4
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Normal).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Normal).Version = 3;
-                                    break;
-                                }
-                            case "C9": // Elec Guts V4
-                            case "89": // Elec Guts V3
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecGuts).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecGuts).Version = 3;
-                                    break;
-                                }
-                            case "CA": // Heat Guts V4
-                            case "8A": // Heat Guts V3
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatGuts).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatGuts).Version = 3;
-                                    break;
-                                }
-                            case "CB": // Aqua Guts V4
-                            case "8B": // Aqua Guts V3
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaGuts).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaGuts).Version = 3;
-                                    break;
-                                }
-                            case "CC": // Wood Guts V4
-                            case "8C": // Wood Guts V3
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodGuts).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodGuts).Version = 3;
-                                    break;
-                                }
-                            case "D1": // Elec Custom V4
-                            case "91": // Elec Custom V3
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecCust).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecCust).Version = 3;
-                                    break;
-                                }
-                            case "D2": // Heat Custom V4
-                            case "92": // Heat Custom V3
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatCust).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatCust).Version = 3;
-                                    break;
-                                }
-                            case "D3": // Aqua Custom V4
-                            case "93": // Aqua Custom V3
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaCust).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaCust).Version = 3;
-                                    break;
-                                }
-                            case "D4": // Wood Custom V4
-                            case "94": // Wood Custom V3
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodCust).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodCust).Version = 3;
-                                    break;
-                                }
-                            case "D9": // Elec Team V4
-                            case "99": // Elec Team V3
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecTeam).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecTeam).Version = 3;
-                                    break;
-                                }
-                            case "DA": // Heat Team V4
-                            case "9A": // Heat Team V3
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatTeam).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatTeam).Version = 3;
-                                    break;
-                                }
-                            case "DB": // Aqua Team V4
-                            case "9B": // Aqua Team V3
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaTeam).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaTeam).Version = 3;
-                                    break;
-                                }
-                            case "DC": // Wood Team V4
-                            case "9C": // Wood Team V3
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodTeam).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodTeam).Version = 3;
-                                    break;
-                                }
-                            case "E1": // Elec Shield V4
-                            case "A1": // Elec Shield V3
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecShield).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.ElecShield).Version = 3;
-                                    break;
-                                }
-                            case "E2": // Heat Shield V4
-                            case "A2": // Heat Shield V3
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatShield).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.HeatShield).Version = 3;
-                                    break;
-                                }
-                            case "E3": // Aqua Shield V4
-                            case "A3": // Aqua Shield V3
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaShield).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.AquaShield).Version = 3;
-                                    break;
-                                }
-                            case "E4": // Wood Shield V4
-                            case "A4": // Wood Shield V3
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodShield).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.WoodShield).Version = 3;
-                                    break;
-                                }
-                            case "E8": // Hub Style V4
-                            case "A8": // Hub Style V3
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Hub).Equip = true;
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Hub).Version = 3;
-                                    break;
-                                }
-                            default: //default to normal
-                                {
-                                    _tempStyles.FirstOrDefault(x => x.Name == Style.Value.Normal).Equip = true;
-                                    break;
-                                }
-
-
-                        }
-
-                        _styles = _tempStyles;
-                        break;
-                    }
-                default:
-                    break;
-            }
-                        
+            ShowLoading();
+            dgvPack.Enabled = false;
+            await Task.Run(() => UpdatePackQty());
+            dgvPack.Enabled = true;
+            HideLoading();
         }
 
-        private void UpdateStyles(SaveDataObject saveData)
-        {
-            switch (saveData.GameName)
-            {
-                case GameTitle.Title.MegaManBattleNetwork:
-                    {
-                        foreach (var style in _styles)
-                        {
-                            switch (style.Name)
-                            {
-                                case Style.Value.Normal:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            saveData.EqStyle = 0;
-                                        }
-                                        break;
-                                    }
-                                case Style.Value.Heat:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            saveData.EqStyle = 2;
-                                        }
-
-                                        saveData.Style1 = style.Add.ToByte();
-                                        break;
-                                    }
-                                case Style.Value.Aqua:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            saveData.EqStyle = 3;
-                                        }
-
-                                        saveData.Style2 = style.Add.ToByte();
-                                        break;
-                                    }
-                                case Style.Value.Wood:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            saveData.EqStyle = 4;
-                                        }
-
-                                        saveData.Style3 = style.Add.ToByte();
-                                        break;
-                                    }
-                                default:
-                                    break;
-
-                            }
-                        }
-                        break;
-                    }
-                case GameTitle.Title.MegaManBattleNetwork2:
-                    {
-                        saveData.StyleTypes = new List<int>(); //resetting the list
-                        saveData.StyleTypes.Add(Convert.ToInt32("190", 16)); //Add Normal back into the list
-                        var index = 1;
-                        foreach (var style in _styles)
-                        {
-                            switch(style.Name)
-                            {
-                                case Style.Value.Normal:
-                                    {
-                                        if(style.Equip.GetValueOrDefault(false))
-                                        {
-                                            saveData.EqStyle = Convert.ToByte("00", 16);
-                                        }
-                                        break;
-                                    }
-                                case Style.Value.AquaGuts:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            switch(style.Version.GetValueOrDefault(1))
-                                            {
-                                                case 1:
-                                                    saveData.EqStyle = Convert.ToByte("0B", 16);
-                                                    break;
-                                                case 2:
-                                                    saveData.EqStyle = Convert.ToByte("4B", 16);
-                                                    break;
-                                                case 3:
-                                                    saveData.EqStyle = Convert.ToByte("8B", 16);
-                                                    break;
-                                            }
-                                        }
-                                        if (style.Add.GetValueOrDefault(false))
-                                        {
-                                            saveData.StyleTypes.Add(Convert.ToInt32("198", 16));
-                                            switch(index)
-                                            {
-                                                case 1:
-                                                    saveData.Style1 = (byte)style.Version.GetValueOrDefault(1);
-                                                    index++;
-                                                    break;
-                                                case 2:
-                                                    saveData.Style2 = (byte)style.Version.GetValueOrDefault(1);
-                                                    break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                case Style.Value.WoodGuts:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            switch (style.Version.GetValueOrDefault(1))
-                                            {
-                                                case 1:
-                                                    saveData.EqStyle = Convert.ToByte("0C", 16);
-                                                    break;
-                                                case 2:
-                                                    saveData.EqStyle = Convert.ToByte("4C", 16);
-                                                    break;
-                                                case 3:
-                                                    saveData.EqStyle = Convert.ToByte("8C", 16);
-                                                    break;
-                                            }
-                                        }
-                                        if (style.Add.GetValueOrDefault(false))
-                                        {
-                                            saveData.StyleTypes.Add(Convert.ToInt32("199", 16));
-                                            switch (index)
-                                            {
-                                                case 1:
-                                                    saveData.Style1 = (byte)style.Version.GetValueOrDefault(1);
-                                                    index++;
-                                                    break;
-                                                case 2:
-                                                    saveData.Style2 = (byte)style.Version.GetValueOrDefault(1);
-                                                    break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                case Style.Value.HeatGuts:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            switch (style.Version.GetValueOrDefault(1))
-                                            {
-                                                case 1:
-                                                    saveData.EqStyle = Convert.ToByte("0A", 16);
-                                                    break;
-                                                case 2:
-                                                    saveData.EqStyle = Convert.ToByte("4A", 16);
-                                                    break;
-                                                case 3:
-                                                    saveData.EqStyle = Convert.ToByte("8A", 16);
-                                                    break;
-                                            }
-                                        }
-                                        if (style.Add.GetValueOrDefault(false))
-                                        {
-                                            saveData.StyleTypes.Add(Convert.ToInt32("197", 16));
-                                            switch (index)
-                                            {
-                                                case 1:
-                                                    saveData.Style1 = (byte)style.Version.GetValueOrDefault(1);
-                                                    index++;
-                                                    break;
-                                                case 2:
-                                                    saveData.Style2 = (byte)style.Version.GetValueOrDefault(1);
-                                                    break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                case Style.Value.ElecGuts:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            switch (style.Version.GetValueOrDefault(1))
-                                            {
-                                                case 1:
-                                                    saveData.EqStyle = Convert.ToByte("09", 16);
-                                                    break;
-                                                case 2:
-                                                    saveData.EqStyle = Convert.ToByte("49", 16);
-                                                    break;
-                                                case 3:
-                                                    saveData.EqStyle = Convert.ToByte("89", 16);
-                                                    break;
-                                            }
-                                        }
-                                        if (style.Add.GetValueOrDefault(false))
-                                        {
-                                            saveData.StyleTypes.Add(Convert.ToInt32("196", 16));
-                                            switch (index)
-                                            {
-                                                case 1:
-                                                    saveData.Style1 = (byte)style.Version.GetValueOrDefault(1);
-                                                    index++;
-                                                    break;
-                                                case 2:
-                                                    saveData.Style2 = (byte)style.Version.GetValueOrDefault(1);
-                                                    break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                case Style.Value.AquaCust:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            switch (style.Version.GetValueOrDefault(1))
-                                            {
-                                                case 1:
-                                                    saveData.EqStyle = Convert.ToByte("13", 16);
-                                                    break;
-                                                case 2:
-                                                    saveData.EqStyle = Convert.ToByte("53", 16);
-                                                    break;
-                                                case 3:
-                                                    saveData.EqStyle = Convert.ToByte("93", 16);
-                                                    break;
-                                            }
-                                        }
-                                        if (style.Add.GetValueOrDefault(false))
-                                        {
-                                            saveData.StyleTypes.Add(Convert.ToInt32("19D", 16));
-                                            switch (index)
-                                            {
-                                                case 1:
-                                                    saveData.Style1 = (byte)style.Version.GetValueOrDefault(1);
-                                                    index++;
-                                                    break;
-                                                case 2:
-                                                    saveData.Style2 = (byte)style.Version.GetValueOrDefault(1);
-                                                    break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                case Style.Value.WoodCust:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            switch (style.Version.GetValueOrDefault(1))
-                                            {
-                                                case 1:
-                                                    saveData.EqStyle = Convert.ToByte("14", 16);
-                                                    break;
-                                                case 2:
-                                                    saveData.EqStyle = Convert.ToByte("54", 16);
-                                                    break;
-                                                case 3:
-                                                    saveData.EqStyle = Convert.ToByte("94", 16);
-                                                    break;
-                                            }
-                                        }
-                                        if (style.Add.GetValueOrDefault(false))
-                                        {
-                                            saveData.StyleTypes.Add(Convert.ToInt32("19E", 16));
-                                            switch (index)
-                                            {
-                                                case 1:
-                                                    saveData.Style1 = (byte)style.Version.GetValueOrDefault(1);
-                                                    index++;
-                                                    break;
-                                                case 2:
-                                                    saveData.Style2 = (byte)style.Version.GetValueOrDefault(1);
-                                                    break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                case Style.Value.HeatCust:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            switch (style.Version.GetValueOrDefault(1))
-                                            {
-                                                case 1:
-                                                    saveData.EqStyle = Convert.ToByte("12", 16);
-                                                    break;
-                                                case 2:
-                                                    saveData.EqStyle = Convert.ToByte("52", 16);
-                                                    break;
-                                                case 3:
-                                                    saveData.EqStyle = Convert.ToByte("92", 16);
-                                                    break;
-                                            }
-                                        }
-                                        if (style.Add.GetValueOrDefault(false))
-                                        {
-                                            saveData.StyleTypes.Add(Convert.ToInt32("19C", 16));
-                                            switch (index)
-                                            {
-                                                case 1:
-                                                    saveData.Style1 = (byte)style.Version.GetValueOrDefault(1);
-                                                    index++;
-                                                    break;
-                                                case 2:
-                                                    saveData.Style2 = (byte)style.Version.GetValueOrDefault(1);
-                                                    break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                case Style.Value.ElecCust:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            switch (style.Version.GetValueOrDefault(1))
-                                            {
-                                                case 1:
-                                                    saveData.EqStyle = Convert.ToByte("11", 16);
-                                                    break;
-                                                case 2:
-                                                    saveData.EqStyle = Convert.ToByte("51", 16);
-                                                    break;
-                                                case 3:
-                                                    saveData.EqStyle = Convert.ToByte("91", 16);
-                                                    break;
-                                            }
-                                        }
-                                        if (style.Add.GetValueOrDefault(false))
-                                        {
-                                            saveData.StyleTypes.Add(Convert.ToInt32("19B", 16));
-                                            switch (index)
-                                            {
-                                                case 1:
-                                                    saveData.Style1 = (byte)style.Version.GetValueOrDefault(1);
-                                                    index++;
-                                                    break;
-                                                case 2:
-                                                    saveData.Style2 = (byte)style.Version.GetValueOrDefault(1);
-                                                    break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                case Style.Value.AquaTeam:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            switch (style.Version.GetValueOrDefault(1))
-                                            {
-                                                case 1:
-                                                    saveData.EqStyle = Convert.ToByte("1B", 16);
-                                                    break;
-                                                case 2:
-                                                    saveData.EqStyle = Convert.ToByte("5B", 16);
-                                                    break;
-                                                case 3:
-                                                    saveData.EqStyle = Convert.ToByte("9B", 16);
-                                                    break;
-                                            }
-                                        }
-                                        if (style.Add.GetValueOrDefault(false))
-                                        {
-                                            saveData.StyleTypes.Add(Convert.ToInt32("1A2", 16));
-                                            switch (index)
-                                            {
-                                                case 1:
-                                                    saveData.Style1 = (byte)style.Version.GetValueOrDefault(1);
-                                                    index++;
-                                                    break;
-                                                case 2:
-                                                    saveData.Style2 = (byte)style.Version.GetValueOrDefault(1);
-                                                    break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                case Style.Value.WoodTeam:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            switch (style.Version.GetValueOrDefault(1))
-                                            {
-                                                case 1:
-                                                    saveData.EqStyle = Convert.ToByte("1C", 16);
-                                                    break;
-                                                case 2:
-                                                    saveData.EqStyle = Convert.ToByte("5C", 16);
-                                                    break;
-                                                case 3:
-                                                    saveData.EqStyle = Convert.ToByte("9C", 16);
-                                                    break;
-                                            }
-                                        }
-                                        if (style.Add.GetValueOrDefault(false))
-                                        {
-                                            saveData.StyleTypes.Add(Convert.ToInt32("1A3", 16));
-                                            switch (index)
-                                            {
-                                                case 1:
-                                                    saveData.Style1 = (byte)style.Version.GetValueOrDefault(1);
-                                                    index++;
-                                                    break;
-                                                case 2:
-                                                    saveData.Style2 = (byte)style.Version.GetValueOrDefault(1);
-                                                    break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                case Style.Value.HeatTeam:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            switch (style.Version.GetValueOrDefault(1))
-                                            {
-                                                case 1:
-                                                    saveData.EqStyle = Convert.ToByte("1A", 16);
-                                                    break;
-                                                case 2:
-                                                    saveData.EqStyle = Convert.ToByte("5A", 16);
-                                                    break;
-                                                case 3:
-                                                    saveData.EqStyle = Convert.ToByte("9A", 16);
-                                                    break;
-                                            }
-                                        }
-                                        if (style.Add.GetValueOrDefault(false))
-                                        {
-                                            saveData.StyleTypes.Add(Convert.ToInt32("1A1", 16));
-                                            switch (index)
-                                            {
-                                                case 1:
-                                                    saveData.Style1 = (byte)style.Version.GetValueOrDefault(1);
-                                                    index++;
-                                                    break;
-                                                case 2:
-                                                    saveData.Style2 = (byte)style.Version.GetValueOrDefault(1);
-                                                    break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                case Style.Value.ElecTeam:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            switch (style.Version.GetValueOrDefault(1))
-                                            {
-                                                case 1:
-                                                    saveData.EqStyle = Convert.ToByte("19", 16);
-                                                    break;
-                                                case 2:
-                                                    saveData.EqStyle = Convert.ToByte("59", 16);
-                                                    break;
-                                                case 3:
-                                                    saveData.EqStyle = Convert.ToByte("99", 16);
-                                                    break;
-                                            }
-                                        }
-                                        if (style.Add.GetValueOrDefault(false))
-                                        {
-                                            saveData.StyleTypes.Add(Convert.ToInt32("1A0", 16));
-                                            switch (index)
-                                            {
-                                                case 1:
-                                                    saveData.Style1 = (byte)style.Version.GetValueOrDefault(1);
-                                                    index++;
-                                                    break;
-                                                case 2:
-                                                    saveData.Style2 = (byte)style.Version.GetValueOrDefault(1);
-                                                    break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                case Style.Value.AquaShield:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            switch (style.Version.GetValueOrDefault(1))
-                                            {
-                                                case 1:
-                                                    saveData.EqStyle = Convert.ToByte("23", 16);
-                                                    break;
-                                                case 2:
-                                                    saveData.EqStyle = Convert.ToByte("63", 16);
-                                                    break;
-                                                case 3:
-                                                    saveData.EqStyle = Convert.ToByte("A3", 16);
-                                                    break;
-                                            }
-                                        }
-                                        if (style.Add.GetValueOrDefault(false))
-                                        {
-                                            saveData.StyleTypes.Add(Convert.ToInt32("1A7", 16));
-                                            switch (index)
-                                            {
-                                                case 1:
-                                                    saveData.Style1 = (byte)style.Version.GetValueOrDefault(1);
-                                                    index++;
-                                                    break;
-                                                case 2:
-                                                    saveData.Style2 = (byte)style.Version.GetValueOrDefault(1);
-                                                    break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                case Style.Value.WoodShield:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            switch (style.Version.GetValueOrDefault(1))
-                                            {
-                                                case 1:
-                                                    saveData.EqStyle = Convert.ToByte("24", 16);
-                                                    break;
-                                                case 2:
-                                                    saveData.EqStyle = Convert.ToByte("64", 16);
-                                                    break;
-                                                case 3:
-                                                    saveData.EqStyle = Convert.ToByte("A4", 16);
-                                                    break;
-                                            }
-                                        }
-                                        if (style.Add.GetValueOrDefault(false))
-                                        {
-                                            saveData.StyleTypes.Add(Convert.ToInt32("1A8", 16));
-                                            switch (index)
-                                            {
-                                                case 1:
-                                                    saveData.Style1 = (byte)style.Version.GetValueOrDefault(1);
-                                                    index++;
-                                                    break;
-                                                case 2:
-                                                    saveData.Style2 = (byte)style.Version.GetValueOrDefault(1);
-                                                    break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                case Style.Value.HeatShield:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            switch (style.Version.GetValueOrDefault(1))
-                                            {
-                                                case 1:
-                                                    saveData.EqStyle = Convert.ToByte("22", 16);
-                                                    break;
-                                                case 2:
-                                                    saveData.EqStyle = Convert.ToByte("62", 16);
-                                                    break;
-                                                case 3:
-                                                    saveData.EqStyle = Convert.ToByte("A2", 16);
-                                                    break;
-                                            }
-                                        }
-                                        if (style.Add.GetValueOrDefault(false))
-                                        {
-                                            saveData.StyleTypes.Add(Convert.ToInt32("1A6", 16));
-                                            switch (index)
-                                            {
-                                                case 1:
-                                                    saveData.Style1 = (byte)style.Version.GetValueOrDefault(1);
-                                                    index++;
-                                                    break;
-                                                case 2:
-                                                    saveData.Style2 = (byte)style.Version.GetValueOrDefault(1);
-                                                    break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                case Style.Value.ElecShield:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            switch (style.Version.GetValueOrDefault(1))
-                                            {
-                                                case 1:
-                                                    saveData.EqStyle = Convert.ToByte("21", 16);
-                                                    break;
-                                                case 2:
-                                                    saveData.EqStyle = Convert.ToByte("61", 16);
-                                                    break;
-                                                case 3:
-                                                    saveData.EqStyle = Convert.ToByte("A1", 16);
-                                                    break;
-                                            }
-                                        }
-                                        if (style.Add.GetValueOrDefault(false))
-                                        {
-                                            saveData.StyleTypes.Add(Convert.ToInt32("1A5", 16));
-                                            switch (index)
-                                            {
-                                                case 1:
-                                                    saveData.Style1 = (byte)style.Version.GetValueOrDefault(1);
-                                                    index++;
-                                                    break;
-                                                case 2:
-                                                    saveData.Style2 = (byte)style.Version.GetValueOrDefault(1);
-                                                    break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                case Style.Value.Hub:
-                                    {
-                                        if (style.Equip.GetValueOrDefault(false))
-                                        {
-                                            switch (style.Version.GetValueOrDefault(1))
-                                            {
-                                                case 1:
-                                                    saveData.EqStyle = Convert.ToByte("28", 16);
-                                                    break;
-                                                case 2:
-                                                    saveData.EqStyle = Convert.ToByte("68", 16);
-                                                    break;
-                                                case 3:
-                                                    saveData.EqStyle = Convert.ToByte("A8", 16);
-                                                    break;
-                                            }
-                                        }
-                                        if (style.Add.GetValueOrDefault(false))
-                                        {
-                                            saveData.StyleTypes.Add(Convert.ToInt32("1A9", 16));
-                                            switch (index)
-                                            {
-                                                case 1:
-                                                    saveData.Style1 = (byte)style.Version.GetValueOrDefault(1);
-                                                    index++;
-                                                    break;
-                                                case 2:
-                                                    saveData.Style2 = (byte)style.Version.GetValueOrDefault(1);
-                                                    break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                default:
-                                    break;
-
-                            }
-                        }
-                        break;
-                    }
-                default: break;
-            }
-        }
-
-        private void btnSetPackQuantity_Click(object sender, EventArgs e)
+        private void UpdatePackQty()
         {
             int packQuantity = (int)nudPackQuantity.Value;
 
-            foreach(DataGridViewRow chip in dgvPack.Rows)
+            foreach (DataGridViewRow chip in dgvPack.Rows)
             {
                 if ((int)chip.Cells[3].Value < packQuantity)
                 {
@@ -2054,9 +1194,14 @@ namespace NaviDoctor
                     panelBugFragRegMem.Visible = false;
                     panelSubChips.Visible = false;
                     programAdvanceMemoToolStripMenuItem.Enabled = false;
+                    customizeToolStripMenuItem.Enabled = false;
+                    panel_MegamanStats.Visible = true;
+                    panelRegChip.Visible = false;
                     break;
                 case GameTitle.Title.MegaManBattleNetwork2:
                     programAdvanceMemoToolStripMenuItem.Enabled = true;
+                    customizeToolStripMenuItem.Enabled = false;
+                    panelRegChip.Visible = true;
                     switch (saveData.Folders)
                     {
                         case 1:
@@ -2077,9 +1222,34 @@ namespace NaviDoctor
                     btnSelectStyles.Enabled = true;
                     panelBugFragRegMem.Visible = true;
                     panelSubChips.Visible = true;
+                    panel_MegamanStats.Visible = true;
                     break;
                 case GameTitle.Title.MegaManBattleNetwork3White:
                 case GameTitle.Title.MegaManBattleNetwork3Blue:
+                    programAdvanceMemoToolStripMenuItem.Enabled = true;
+                    customizeToolStripMenuItem.Enabled = true;
+                    panelRegChip.Visible = true;
+                    switch (saveData.Folders)
+                    {
+                        case 1:
+                            if (tabsFolders.TabPages.Contains(tabPage_Folder2)) tabsFolders.TabPages.Remove(tabPage_Folder2);
+                            if (tabsFolders.TabPages.Contains(tabPage_Folder3)) tabsFolders.TabPages.Remove(tabPage_Folder3);
+                            break;
+                        case 2:
+                            if (!tabsFolders.TabPages.Contains(tabPage_Folder2)) tabsFolders.TabPages.Insert(1, tabPage_Folder2);
+                            if (tabsFolders.TabPages.Contains(tabPage_Folder3)) tabsFolders.TabPages.Remove(tabPage_Folder3);
+                            break;
+                        case 3:
+                            if (!tabsFolders.TabPages.Contains(tabPage_Folder2)) tabsFolders.TabPages.Insert(1, tabPage_Folder2);
+                            if (!tabsFolders.TabPages.Contains(tabPage_Folder3)) tabsFolders.TabPages.Insert(2, tabPage_Folder3);
+                            break;
+                        default:
+                            break;
+                    }
+                    btnSelectStyles.Enabled = true;
+                    panelBugFragRegMem.Visible = true;
+                    panelSubChips.Visible = true;
+                    panel_MegamanStats.Visible = false;
                     break;
                 case GameTitle.Title.MegaManBattleNetwork4RedSun:
                 case GameTitle.Title.MegaManBattleNetwork4BlueMoon:
@@ -2105,6 +1275,7 @@ namespace NaviDoctor
         private void tabsFolders_SelectedIndexChanged(object sender, EventArgs e)
         {
             UpdateFolderCount();
+            PopulateRegChipCombobox();
         }
 
         private void UpdateFolderCount()
@@ -2212,6 +1383,98 @@ namespace NaviDoctor
         {
             var aboutPage = new AboutUs();
             aboutPage.ShowDialog();
+        }
+
+        private void customizeToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (saveData == null)
+            {
+                MessageBox.Show("Please load a save file first.");
+                return; // Exit the event handler
+            }
+            Style style = _styles.FirstOrDefault(x => x.Equip == true);
+            saveData.HPUp = (byte)((maxHPStat.Value - 100) / 20); // Recalculate HP like we're saving
+            saveData.MaxHP = (short)(maxHPStat.Value + saveData.BonusHP);
+            saveData.RegMem = (int)nudRegMem.Value; // update RegMem
+            var ncpEdit = new NaviCustEdit(saveData, style);
+            if (ncpEdit.ShowDialog() == DialogResult.OK)
+            {
+
+            }
+        }
+
+        private void btnSetRegChip_Click(object sender, EventArgs e)
+        {
+            var regChip = (int)cbxRegChip.SelectedValue;
+            var regChipIndex = cbxRegChip.SelectedIndex;
+            List<BattleChipData> chipNameMap;
+
+            switch (saveData.GameName)
+            {
+                case GameTitle.Title.MegaManBattleNetwork:
+                    chipNameMap = BattleChipData.BN1ChipNameMap;
+                    break;
+                case GameTitle.Title.MegaManBattleNetwork2:
+                    chipNameMap = BattleChipData.BN2ChipNameMap;
+                    break;
+                case GameTitle.Title.MegaManBattleNetwork3White:
+                case GameTitle.Title.MegaManBattleNetwork3Blue:
+                    chipNameMap = BattleChipData.BN3ChipNameMap;
+                    break;
+                default:
+                    return;
+            }
+
+            var bcd = BattleChipData.GetChipNameByID(chipNameMap, regChip);
+
+            if(bcd.Size > nudRegMem.Value)
+            {
+                MessageBox.Show("Not enough RegMem for this chip.");
+                return;
+            }
+
+
+            //This is because of the way Extra Folder is saved into Folder2Data
+            switch (saveData.GameName)
+            {
+                case GameTitle.Title.MegaManBattleNetwork:
+                case GameTitle.Title.MegaManBattleNetwork2:
+                    switch (tabsFolders.SelectedIndex)
+                    {
+                        case 0:
+                            saveData.RegChip1 = regChipIndex;
+                            break;
+                        case 1:
+                            saveData.RegChip2 = regChipIndex;
+                            break;
+                        case 2:
+                            saveData.RegChip3 = regChipIndex;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                case GameTitle.Title.MegaManBattleNetwork3White:
+                case GameTitle.Title.MegaManBattleNetwork3Blue:
+                    switch (tabsFolders.SelectedIndex)
+                    {
+                        case 0:
+                            saveData.RegChip1 = regChipIndex;
+                            break;
+                        case 1:
+                            saveData.RegChip2 = regChipIndex;
+                            break;
+                        case 2:
+                            return;
+                        default:
+                            break;
+                    }
+                    break;
+                default:
+                    return;
+            }
+
+            MessageBox.Show($"RegChip set to {bcd.Name} [{bcd.AlphabeticalCode}]!");
         }
     }
 }
